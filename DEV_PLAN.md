@@ -61,56 +61,46 @@
 
 ---
 
-## Phase 2: The AI Agent (NoahAI Track)
+## Phase 2: The AI Agent (NoahAI Track) 🤖
 *Focus: Automation & Intelligence*  
-*Estimated Time: 1 day*
+*Estimated Time: 1 day (8-10 hours)*
 
-### Setup
+**📖 DETAILED GUIDE:** See [Doc/PHASE2_DEVELOPMENT_PLAN.md](../Doc/PHASE2_DEVELOPMENT_PLAN.md) for step-by-step implementation!
+
+### Quick Start
+- [ ] Review the detailed development plan in `Doc/PHASE2_DEVELOPMENT_PLAN.md`
 - [ ] Initialize Node.js/TypeScript project in `/agent`
   ```bash
   mkdir agent && cd agent
   npm init -y
-  npm install typescript ethers dotenv
-  npm install -D @types/node
+  npm install ethers@^6.9.0 dotenv winston node-cron async-retry
+  npm install -D typescript @types/node ts-node nodemon
   ```
 - [ ] Setup TypeScript config (`tsconfig.json`)
-- [ ] Create `.env` file with RPC and contract addresses
+- [ ] Create `.env` file with RPC and contract addresses from Phase 1
 
-### Core Logic
-- [ ] Create `eventListener.ts`
-  - Listen to `PoolCreated` events
-  - Listen to `Contribution` events
-  - Listen to `PayoutDistributed` events
-- [ ] Create `poolMonitor.ts`
-  - Check all active pools
-  - Identify pools where `block.timestamp > nextPayoutTime`
-  - Identify members who haven't contributed
-- [ ] Create `notificationService.ts`
-  - Log reminder messages (console for MVP)
-  - Format: "🔔 User 0x123...: Payment due in 24 hours!"
-- [ ] Create `payoutTrigger.ts`
-  - Check if pool is ready for payout
-  - Call `distributePot()` automatically
-  - Log transaction hash
+### Core Components (8 Steps in Detailed Plan)
+- [ ] **Step 1:** Project setup & dependencies (30 min)
+- [ ] **Step 2:** Utilities & types (45 min)
+- [ ] **Step 3:** Event listener (1.5 hours)
+- [ ] **Step 4:** Pool monitor (1.5 hours)
+- [ ] **Step 5:** Decision engine (1 hour)
+- [ ] **Step 6:** Notification service (30 min)
+- [ ] **Step 7:** Main orchestrator (1 hour)
+- [ ] **Step 8:** README & documentation (30 min)
 
-### Agent Intelligence
-- [ ] Implement decision logic
-  - Prioritize pools by urgency (time until payout)
-  - Calculate risk score (# of missing payments)
-  - Decide when to trigger vs wait
-
-### Testing
+### Testing & Validation
 - [ ] Test against Alfajores contracts
-- [ ] Simulate scenarios:
-  - New pool created
-  - All members paid → trigger payout
-  - One member late → send reminder
+- [ ] Run full cycle test (create pool → contribute → payout)
+- [ ] Verify agent logs all events clearly
+- [ ] Ensure agent handles disconnections gracefully
 
 ### 📋 Milestone Check
 - [ ] **REPORT BACK:** Share screenshot/video of agent console showing:
-  - Event detection
-  - Automated notifications
-  - Payout trigger transaction
+  - Event detection (new pools, contributions)
+  - Automated notifications/reminders
+  - Payout trigger transaction with TX hash
+  - Agent running stable for 2+ hours
 
 ---
 
