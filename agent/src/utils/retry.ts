@@ -31,7 +31,7 @@ export async function retryWithBackoff<T>(
             maxTimeout: 10000,
             ...options
         }
-    );
+    ) as Promise<T>;
 }
 
 export async function sleep(ms: number): Promise<void> {
