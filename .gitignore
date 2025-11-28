@@ -1,0 +1,64 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.test
+*.env
+
+# Foundry / Solidity
+cache/
+out/
+broadcast/
+deployments/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# Misc
+.cache/
+.temp/
+tmp/
+
+# Hardhat (if used)
+artifacts/
+typechain/
+typechain-types/
+
+# Don't ignore
+!.gitkeep
+!.env.example
