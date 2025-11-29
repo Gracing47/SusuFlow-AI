@@ -264,24 +264,28 @@ export default function PoolDetailsPage() {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-[#0d111c] p-4 rounded-[24px] border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Contribution</p>
-                            <p className="text-xl font-bold text-white">{formatUnits(pool.contributionAmount, 18)} {tokenSymbol}</p>
-                        </div>
-                        <div className="bg-[#0d111c] p-4 rounded-[24px] border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Pot Size</p>
-                            <p className="text-xl font-bold text-white">
-                                {(Number(formatUnits(pool.contributionAmount, 18)) * Number(pool.totalMembers)).toFixed(2)} {tokenSymbol}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-[#0d111c] p-5 rounded-[24px] border border-white/5 flex flex-col justify-center">
+                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Contribution</p>
+                            <p className="text-xl font-bold text-white truncate" title={`${formatUnits(pool.contributionAmount, 18)} ${tokenSymbol}`}>
+                                {formatUnits(pool.contributionAmount, 18)} <span className="text-sm font-normal text-gray-500">{tokenSymbol}</span>
                             </p>
                         </div>
-                        <div className="bg-[#0d111c] p-4 rounded-[24px] border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Members</p>
-                            <p className="text-xl font-bold text-white">{pool.memberCount} / {pool.totalMembers}</p>
+                        <div className="bg-[#0d111c] p-5 rounded-[24px] border border-white/5 flex flex-col justify-center">
+                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Pot Size</p>
+                            <p className="text-xl font-bold text-white truncate">
+                                {formatUnits(pool.contributionAmount * pool.maxMembers, 18)} <span className="text-sm font-normal text-gray-500">{tokenSymbol}</span>
+                            </p>
                         </div>
-                        <div className="bg-[#0d111c] p-4 rounded-[24px] border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Round</p>
-                            <p className="text-xl font-bold text-white">{pool.currentRound}</p>
+                        <div className="bg-[#0d111c] p-5 rounded-[24px] border border-white/5 flex flex-col justify-center">
+                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Members</p>
+                            <p className="text-xl font-bold text-white">
+                                {pool.memberCount.toString()} <span className="text-gray-500 text-lg">/ {pool.maxMembers.toString()}</span>
+                            </p>
+                        </div>
+                        <div className="bg-[#0d111c] p-5 rounded-[24px] border border-white/5 flex flex-col justify-center">
+                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Round</p>
+                            <p className="text-xl font-bold text-white">#{pool.currentRound.toString()}</p>
                         </div>
                     </div>
                 </div>
@@ -292,48 +296,68 @@ export default function PoolDetailsPage() {
                         {/* Timer Card */}
                         <div className="bg-[#131a2a] rounded-[32px] p-8 border border-white/5 shadow-xl">
                             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                <span>⏱️</span> Next Payout In
+                                <span>⏱️</span> Next Payout
                             </h3>
-                            <CountdownTimer targetDate={new Date(Number(pool.nextPayoutTime) * 1000)} />
+                            {Number(pool.nextPayoutTime) === 0 ? (
+                                <div className="text-center py-8">
+                                    <p className="text-2xl font-bold text-gray-400">Pool Not Started</p>
+                                    <p className="text-gray-500 mt-2">Waiting for members to join...</p>
+                                </div>
+                            ) : Number(pool.nextPayoutTime) * 1000 < Date.now() ? (
+                                <div className="text-center py-8 bg-green-500/10 rounded-[24px] border border-green-500/20">
+                                    <p className="text-3xl font-bold text-green-400 mb-2">Payout Ready! 💰</p>
+                                    <p className="text-green-500/60">The pot can now be distributed.</p>
+                                </div>
+                            ) : (
+                                <CountdownTimer targetDate={new Date(Number(pool.nextPayoutTime) * 1000)} />
+                            )}
                         </div>
 
                         {/* Members List */}
                         <div className="bg-[#131a2a] rounded-[32px] p-8 border border-white/5 shadow-xl">
-                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                <span>👥</span> Members
-                            </h3>
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <span>👥</span> Members
+                                </h3>
+                                <span className="text-sm text-gray-400 bg-[#0d111c] px-3 py-1 rounded-full border border-white/5">
+                                    {members.length} Joined
+                                </span>
+                            </div>
                             <div className="space-y-3">
                                 {members.map((member, index) => (
                                     <div
                                         key={member.address}
-                                        className="flex items-center justify-between p-4 bg-[#0d111c] rounded-[20px] border border-white/5"
+                                        className="flex items-center justify-between p-4 bg-[#0d111c] rounded-[20px] border border-white/5 hover:border-white/10 transition-colors"
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs font-bold text-white">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white shadow-lg">
                                                 {index + 1}
                                             </div>
                                             <div>
-                                                <p className="text-white font-mono text-sm">
+                                                <p className="text-white font-mono font-medium">
                                                     {member.address.slice(0, 6)}...{member.address.slice(-4)}
                                                     {member.address.toLowerCase() === account?.address.toLowerCase() && (
-                                                        <span className="ml-2 text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full">You</span>
+                                                        <span className="ml-2 text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 uppercase tracking-wide">You</span>
                                                     )}
                                                 </p>
+                                                <p className="text-xs text-gray-500 mt-0.5">Member since Round 1</p>
                                             </div>
                                         </div>
                                         {member.hasContributed ? (
-                                            <span className="text-green-400 text-sm font-medium flex items-center gap-1">
-                                                ✅ Paid
-                                            </span>
+                                            <div className="flex items-center gap-2 bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                                <span className="text-green-400 text-sm font-bold">Paid</span>
+                                            </div>
                                         ) : (
-                                            <span className="text-yellow-400 text-sm font-medium flex items-center gap-1">
-                                                ⏳ Pending
-                                            </span>
+                                            <div className="flex items-center gap-2 bg-yellow-500/10 px-3 py-1.5 rounded-xl border border-yellow-500/20">
+                                                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                                                <span className="text-yellow-400 text-sm font-bold">Pending</span>
+                                            </div>
                                         )}
                                     </div>
                                 ))}
-                                {Array.from({ length: Number(pool.totalMembers) - members.length }).map((_, i) => (
-                                    <div key={`empty-${i}`} className="p-4 border-2 border-dashed border-white/5 rounded-[20px] flex items-center justify-center text-gray-500 text-sm">
+                                {Array.from({ length: Number(pool.maxMembers) - members.length }).map((_, i) => (
+                                    <div key={`empty-${i}`} className="p-4 border-2 border-dashed border-white/5 rounded-[20px] flex items-center justify-center text-gray-600 font-medium bg-[#0d111c]/30">
                                         Empty Slot
                                     </div>
                                 ))}
@@ -350,7 +374,7 @@ export default function PoolDetailsPage() {
                             {!isMember ? (
                                 <button
                                     onClick={handleJoin}
-                                    disabled={isPending || Number(pool.memberCount) >= Number(pool.totalMembers)}
+                                    disabled={isPending || Number(pool.memberCount) >= Number(pool.maxMembers)}
                                     className="w-full bg-[#4c82fb] hover:bg-[#3b6dcf] disabled:bg-[#1b2236] disabled:text-gray-500 text-white font-bold py-4 px-6 rounded-[20px] text-lg transition-all active:scale-[0.98]"
                                 >
                                     {isPending ? 'Joining...' : 'Join Pool'}

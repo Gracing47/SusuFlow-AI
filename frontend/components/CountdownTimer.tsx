@@ -36,22 +36,22 @@ export function CountdownTimer({ targetDate }: CountdownTimerProps) {
     }, [targetDate]);
 
     return (
-        <div className="grid grid-cols-4 gap-2 text-center">
-            <div className="bg-white/5 rounded-xl p-2 backdrop-blur-sm border border-white/5">
-                <div className="text-2xl font-bold text-white font-mono">{timeLeft.days}</div>
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">Days</div>
+        <div className="grid grid-cols-4 gap-4 text-center">
+            <div className="bg-[#0d111c] rounded-[20px] p-4 border border-white/5">
+                <div className="text-3xl font-bold text-white font-mono mb-1">{timeLeft.days}</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">Days</div>
             </div>
-            <div className="bg-white/5 rounded-xl p-2 backdrop-blur-sm border border-white/5">
-                <div className="text-2xl font-bold text-white font-mono">{timeLeft.hours}</div>
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">Hours</div>
+            <div className="bg-[#0d111c] rounded-[20px] p-4 border border-white/5">
+                <div className="text-3xl font-bold text-white font-mono mb-1">{timeLeft.hours}</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">Hours</div>
             </div>
-            <div className="bg-white/5 rounded-xl p-2 backdrop-blur-sm border border-white/5">
-                <div className="text-2xl font-bold text-white font-mono">{timeLeft.minutes}</div>
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">Mins</div>
+            <div className="bg-[#0d111c] rounded-[20px] p-4 border border-white/5">
+                <div className="text-3xl font-bold text-white font-mono mb-1">{timeLeft.minutes}</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">Mins</div>
             </div>
-            <div className="bg-white/5 rounded-xl p-2 backdrop-blur-sm border border-white/5">
-                <div className="text-2xl font-bold text-purple-400 font-mono">{timeLeft.seconds}</div>
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">Secs</div>
+            <div className="bg-[#0d111c] rounded-[20px] p-4 border border-white/5">
+                <div className="text-3xl font-bold text-[#4c82fb] font-mono mb-1">{timeLeft.seconds}</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">Secs</div>
             </div>
         </div>
     );
