@@ -2,26 +2,36 @@
 
 import { WalletConnect } from '@/components/WalletConnect';
 import { useActiveAccount } from 'thirdweb/react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { getAllPools } from '@/lib/contracts/factory';
 
 export default function Home() {
   const account = useActiveAccount();
+  const [stats, setStats] = useState({
+    activePools: 0,
+    totalSaved: '0',
+    payoutsDistributed: 0
+  });
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const pools = await getAllPools();
+        setStats({
+          activePools: pools.length,
+          totalSaved: '0', // TODO: Calculate from pool balances
+          payoutsDistributed: 0 // TODO: Calculate from events
+        });
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    }
+    fetchStats();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-white/10 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">💰</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white">SusuFlow</h1>
-          </div>
-          <WalletConnect />
-        </div>
-      </header>
-
       {/* Hero Section */}
       <main className="container mx-auto px-4 py-20">
         <div className="max-w-4xl mx-auto text-center">
@@ -91,16 +101,26 @@ export default function Home() {
 
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-white mb-2">0</div>
+          <div className="text-center bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+            <div className="text-4xl font-bold text-white mb-2">{stats.activePools}</div>
             <div className="text-gray-400">Active Pools</div>
           </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-white mb-2">0 cUSD</div>
+          <div className="text-center bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="text-4xl font-bold text-white">{stats.totalSaved}</span>
+              <div className="flex flex-col gap-1">
+                <span className="text-lg text-yellow-400 flex items-center gap-1">
+                  🪙 CELO
+                </span>
+                <span className="text-lg text-green-400 flex items-center gap-1">
+                  💵 cUSD
+                </span>
+              </div>
+            </div>
             <div className="text-gray-400">Total Saved</div>
           </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-white mb-2">0</div>
+          <div className="text-center bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+            <div className="text-4xl font-bold text-white mb-2">{stats.payoutsDistributed}</div>
             <div className="text-gray-400">Payouts Distributed</div>
           </div>
         </div>
