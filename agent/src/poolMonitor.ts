@@ -21,30 +21,21 @@ export class PoolMonitor {
         const contract = new ethers.Contract(poolAddress, PoolABI.abi, this.provider);
 
         try {
-            // Fetch core pool info
-            const [
-                contributionAmount,
-                , // cycleDuration (unused)
-                currentRound,
-                nextPayoutTime,
-                isActive
-            ] = await contract.getPoolInfo();
+            // Fetch pool info (returns: memberCount, currentRound, nextPayoutTime, potBalance, isActive, currentWinner)
+            const poolInfo = await contract.getPoolInfo();
+            const currentRound = Number(poolInfo._currentRound || poolInfo[1]);
+            const nextPayoutTime = Number(poolInfo._nextPayoutTime || poolInfo[2]);
+            const isActive = Boolean(poolInfo._isActive || poolInfo[4]);
 
-            // Fetch members
-            const memberCount = await contract.getMemberCount();
-            const members: string[] = [];
-
-            for (let i = 0; i < Number(memberCount); i++) {
-                const member = await contract.members(i);
-                members.push(member);
-            }
+            // Fetch members array
+            const members: string[] = await contract.getMembers();
 
             // Check contributions for current cycle
             const contributionsThisCycle = new Map<string, bigint>();
             for (const member of members) {
-                const contributed = await contract.hasContributed(member, currentRound);
-                if (contributed) {
-                    contributionsThisCycle.set(member, contributionAmount);
+                const contributed = await contract.contributionsThisCycle(member);
+                if (contributed > 0n) {
+                    contributionsThisCycle.set(member, BigInt(contributed));
                 }
             }
 
@@ -55,10 +46,13 @@ export class PoolMonitor {
                 hasReceivedPayout.set(member, received);
             }
 
+            // Get contribution amount from contract
+            const contributionAmount = await contract.contributionAmount();
+
             const state: PoolState = {
                 address: poolAddress,
-                currentRound: Number(currentRound),
-                nextPayoutTime: Number(nextPayoutTime),
+                currentRound,
+                nextPayoutTime,
                 contributionAmount: BigInt(contributionAmount),
                 members,
                 contributionsThisCycle,
