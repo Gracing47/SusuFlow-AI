@@ -156,6 +156,14 @@ export class PoolMonitor {
         return this.pools.size;
     }
 
+    getActivePoolCount(): number {
+        return Array.from(this.pools.values()).filter(pool => pool.isActive).length;
+    }
+
+    getInactivePoolCount(): number {
+        return Array.from(this.pools.values()).filter(pool => !pool.isActive).length;
+    }
+
     getAllPools(): PoolState[] {
         return Array.from(this.pools.values());
     }

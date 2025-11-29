@@ -63,8 +63,12 @@ class NoahAIAgent {
         // Start cron job for periodic scans
         this.startCronJob();
 
+        const totalPools = this.poolMonitor.getPoolCount();
+        const activePools = this.poolMonitor.getActivePoolCount();
+        const completedPools = this.poolMonitor.getInactivePoolCount();
+
         logger.info('✅ NoahAI Agent started successfully!');
-        logger.info(`📊 Monitoring ${this.poolMonitor.getPoolCount()} pool(s)`);
+        logger.info(`📊 Monitoring ${totalPools} pool(s): ${activePools} active, ${completedPools} completed`);
     }
 
     private validateConfig(): void {
@@ -114,13 +118,20 @@ class NoahAIAgent {
 
     private async runPoolScan(): Promise<void> {
         try {
+            const activePools = this.poolMonitor.getActivePoolCount();
+
+            if (activePools === 0) {
+                logger.info('✓ No active pools to scan');
+                return;
+            }
+
             const conditions = await this.poolMonitor.scanForActions();
 
             if (conditions.length > 0) {
                 logger.info(`🎯 Found ${conditions.length} actionable condition(s)`);
                 await this.decisionEngine.processActions(conditions);
             } else {
-                logger.info('✓ No actions needed at this time');
+                logger.info(`✓ Scanned ${activePools} active pool(s) - no actions needed`);
             }
 
         } catch (error: any) {
