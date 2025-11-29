@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { prepareCreatePool } from '@/lib/contracts/factory';
 import { parseUnits } from 'ethers';
-import toast from 'react-hot-toast';
 
 export default function CreatePoolPage() {
     const account = useActiveAccount();
@@ -23,11 +22,6 @@ export default function CreatePoolPage() {
         timeUnit: 'minutes', // 'minutes' or 'days'
     });
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -39,12 +33,11 @@ export default function CreatePoolPage() {
         // Check minimum duration (15 minutes = 900 seconds)
         const MIN_DURATION = 900; // 15 minutes in seconds
         if (durationInSeconds < MIN_DURATION) {
-            toast.error(`⚠️ Cycle duration must be at least 15 minutes.\n\nYour current setting: ${durationInSeconds} seconds\n\nPlease use at least 15 minutes.`);
+            alert(`⚠️ Cycle duration must be at least 15 minutes (900 seconds).\n\nYour current setting: ${durationInSeconds} seconds\n\nPlease use at least 15 minutes.`);
             return;
         }
 
         setIsCreating(true);
-        const toastId = toast.loading('Creating pool...');
 
         try {
             // Determine token address based on selection
@@ -64,36 +57,29 @@ export default function CreatePoolPage() {
             sendTransaction(transaction, {
                 onSuccess: (result) => {
                     console.log('Pool created!', result);
-                    toast.success(`🎉 Pool created successfully!`, { id: toastId, duration: 5000 });
-
-                    // Auto-redirect and refresh after short delay
-                    setTimeout(() => {
-                        router.push('/pools');
-                        router.refresh();
-                    }, 1500);
+                    alert(`Pool created successfully! Transaction: ${result.transactionHash}`);
+                    router.push('/pools');
                 },
                 onError: (error) => {
                     console.error('Error creating pool:', error);
-                    toast.error(`Failed to create pool: ${error.message}`, { id: toastId });
+                    alert('Failed to create pool: ' + error.message);
                     setIsCreating(false);
                 },
             });
         } catch (error: any) {
             console.error('Error preparing transaction:', error);
-            toast.error(`Failed to prepare transaction: ${error.message}`, { id: toastId });
+            alert('Failed to prepare transaction: ' + error.message);
             setIsCreating(false);
         }
     };
 
     if (!account) {
         return (
-            <div className="min-h-screen bg-[#0d111c] flex items-center justify-center">
-                <div className="bg-[#131a2a] rounded-[32px] p-8 border border-white/5 text-center max-w-md w-full shadow-2xl">
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 text-center">
                     <h2 className="text-2xl font-bold text-white mb-4">Connect Your Wallet</h2>
-                    <p className="text-gray-400 mb-6">You need to connect your wallet to create a pool</p>
-                    <div className="flex justify-center">
-                        <WalletConnect />
-                    </div>
+                    <p className="text-gray-300 mb-6">You need to connect your wallet to create a pool</p>
+                    <WalletConnect />
                 </div>
             </div>
         );
@@ -102,141 +88,156 @@ export default function CreatePoolPage() {
     const tokenSymbol = formData.tokenType === 'native' ? 'CELO' : 'cUSD';
 
     return (
-        <div className="min-h-screen bg-[#0d111c] pt-24 pb-12">
-            <main className="container mx-auto px-4 max-w-lg">
-                <div className="mb-6">
-                    <Link href="/pools" className="text-gray-400 hover:text-white transition-colors flex items-center gap-2">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Back to Pools
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+
+
+            <main className="container mx-auto px-4 pt-24 pb-8 max-w-2xl">
+                <div className="mb-8">
+                    <Link href="/pools" className="text-purple-400 hover:text-purple-300">
+                        ← Back to Pools
                     </Link>
                 </div>
 
-                <div className="bg-[#131a2a] rounded-[24px] p-6 border border-white/5 shadow-xl">
-                    <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-2xl font-bold text-white">Create Pool</h1>
-                        <div className="w-8 h-8 rounded-full bg-[#1b2236] flex items-center justify-center text-gray-400">
-                            ⚙️
-                        </div>
-                    </div>
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+                    <h2 className="text-3xl font-bold text-white mb-6">Create New Pool</h2>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Contribution Amount */}
-                        <div className="bg-[#0d111c] p-4 rounded-[20px] border border-white/5 hover:border-white/10 transition-colors">
-                            <label className="block text-gray-400 text-sm font-medium mb-2">Contribution Amount</label>
-                            <div className="flex items-center gap-4">
-                                <input
-                                    type="number"
-                                    name="contributionAmount"
-                                    value={formData.contributionAmount}
-                                    onChange={handleInputChange}
-                                    className="w-full bg-transparent text-3xl font-medium text-white placeholder-gray-600 focus:outline-none"
-                                    placeholder="0.0"
-                                    step="0.01"
-                                    required
-                                />
-                                <div className="bg-[#1b2236] px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/5 shrink-0">
-                                    <span className="font-bold text-white">{tokenSymbol}</span>
-                                </div>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Token Type Selector */}
+                        <div>
+                            <label className="block text-white font-semibold mb-2">
+                                Payment Token
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, tokenType: 'native' })}
+                                    className={`p-4 rounded-xl border-2 transition-all ${formData.tokenType === 'native'
+                                        ? 'border-purple-500 bg-purple-500/20'
+                                        : 'border-white/20 bg-white/5 hover:border-white/40'
+                                        }`}
+                                >
+                                    <div className="text-center">
+                                        <div className="text-3xl mb-2">🪙</div>
+                                        <div className="text-white font-semibold">Native CELO</div>
+                                        <div className="text-gray-400 text-sm">Easier, no approval</div>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, tokenType: 'cusd' })}
+                                    className={`p-4 rounded-xl border-2 transition-all ${formData.tokenType === 'cusd'
+                                        ? 'border-purple-500 bg-purple-500/20'
+                                        : 'border-white/20 bg-white/5 hover:border-white/40'
+                                        }`}
+                                >
+                                    <div className="text-center">
+                                        <div className="text-3xl mb-2">💵</div>
+                                        <div className="text-white font-semibold">cUSD</div>
+                                        <div className="text-gray-400 text-sm">Stablecoin</div>
+                                    </div>
+                                </button>
                             </div>
+                            <p className="text-gray-400 text-sm mt-2">
+                                {formData.tokenType === 'native'
+                                    ? '✨ Recommended: Send CELO directly, no token approval needed'
+                                    : '📝 Requires token approval before each contribution'}
+                            </p>
+                        </div>
+
+                        {/* Contribution Amount */}
+                        <div>
+                            <label className="block text-white font-semibold mb-2">
+                                Contribution Amount ({tokenSymbol})
+                            </label>
+                            <input
+                                type="number"
+                                min="0.1"
+                                step="0.1"
+                                value={formData.contributionAmount}
+                                onChange={(e) => setFormData({ ...formData, contributionAmount: e.target.value })}
+                                className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                placeholder="1"
+                                required
+                            />
+                            <p className="text-gray-400 text-sm mt-1">
+                                Minimum 0.1 {tokenSymbol} - How much each member contributes per cycle
+                            </p>
                         </div>
 
                         {/* Total Members */}
-                        <div className="bg-[#0d111c] p-4 rounded-[20px] border border-white/5 hover:border-white/10 transition-colors">
-                            <label className="block text-gray-400 text-sm font-medium mb-2">Total Members</label>
+                        <div>
+                            <label className="block text-white font-semibold mb-2">
+                                Total Members
+                            </label>
                             <input
                                 type="number"
-                                name="totalMembers"
                                 min="2"
                                 max="20"
                                 value={formData.totalMembers}
-                                onChange={handleInputChange}
-                                className="w-full bg-transparent text-3xl font-medium text-white placeholder-gray-600 focus:outline-none"
+                                onChange={(e) => setFormData({ ...formData, totalMembers: e.target.value })}
+                                className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 placeholder="3"
                                 required
                             />
+                            <p className="text-gray-400 text-sm mt-1">
+                                Maximum number of participants (2-20)
+                            </p>
                         </div>
 
-                        {/* Payout Interval */}
-                        <div className="bg-[#0d111c] p-4 rounded-[20px] border border-white/5 hover:border-white/10 transition-colors">
-                            <label className="block text-gray-400 text-sm font-medium mb-2">Payout Interval</label>
-                            <div className="flex gap-4">
+                        {/* Cycle Duration with Time Unit Selector */}
+                        <div>
+                            <label className="block text-white font-semibold mb-2">
+                                Cycle Duration
+                            </label>
+                            <div className="flex gap-2">
                                 <input
                                     type="number"
-                                    name="cycleDuration"
+                                    min={formData.timeUnit === 'minutes' ? '15' : '1'}
+                                    max={formData.timeUnit === 'minutes' ? '1440' : '365'}
                                     value={formData.cycleDuration}
-                                    onChange={handleInputChange}
-                                    className="w-full bg-transparent text-3xl font-medium text-white placeholder-gray-600 focus:outline-none"
+                                    onChange={(e) => setFormData({ ...formData, cycleDuration: e.target.value })}
+                                    className="flex-1 bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                     placeholder="15"
                                     required
                                 />
                                 <select
-                                    name="timeUnit"
                                     value={formData.timeUnit}
-                                    onChange={handleInputChange}
-                                    className="bg-[#1b2236] text-white border-none rounded-xl px-4 py-2 focus:ring-0 cursor-pointer"
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        timeUnit: e.target.value,
+                                        cycleDuration: e.target.value === 'minutes' ? '15' : '1'
+                                    })}
+                                    className="bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 >
                                     <option value="minutes">Minutes</option>
                                     <option value="days">Days</option>
                                 </select>
                             </div>
-                        </div>
-
-                        {/* Token Type Selection */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, tokenType: 'native' })}
-                                className={`p-4 rounded-[20px] border transition-all flex flex-col items-center gap-2 ${formData.tokenType === 'native'
-                                        ? 'bg-[#1b2236] border-purple-500/50 text-white'
-                                        : 'bg-[#0d111c] border-white/5 text-gray-400 hover:bg-[#1b2236]'
-                                    }`}
-                            >
-                                <span className="text-2xl">🪙</span>
-                                <span className="font-medium">CELO</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, tokenType: 'cUSD' })}
-                                className={`p-4 rounded-[20px] border transition-all flex flex-col items-center gap-2 ${formData.tokenType === 'cUSD'
-                                        ? 'bg-[#1b2236] border-green-500/50 text-white'
-                                        : 'bg-[#0d111c] border-white/5 text-gray-400 hover:bg-[#1b2236]'
-                                    }`}
-                            >
-                                <span className="text-2xl">💵</span>
-                                <span className="font-medium">cUSD</span>
-                            </button>
+                            <p className="text-gray-400 text-sm mt-1">
+                                {formData.timeUnit === 'minutes'
+                                    ? 'Minimum 15 minutes for testing - How often payouts occur'
+                                    : 'Minimum 1 day - How often payouts occur'}
+                            </p>
                         </div>
 
                         {/* Summary */}
-                        <div className="bg-[#1b2236]/50 rounded-[20px] p-4 border border-white/5">
-                            <div className="flex justify-between text-sm mb-2">
-                                <span className="text-gray-400">Pot Size</span>
-                                <span className="text-white font-bold">{(Number(formData.contributionAmount) * Number(formData.totalMembers)).toFixed(2)} {tokenSymbol}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Est. Duration</span>
-                                <span className="text-white font-bold">{Number(formData.totalMembers) * Number(formData.cycleDuration)} {formData.timeUnit}</span>
-                            </div>
+                        <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
+                            <h3 className="text-white font-semibold mb-2">Pool Summary</h3>
+                            <ul className="space-y-1 text-gray-300">
+                                <li>💰 Each member pays: <span className="text-white font-semibold">{formData.contributionAmount} {tokenSymbol}</span></li>
+                                <li>👥 Total members: <span className="text-white font-semibold">{formData.totalMembers}</span></li>
+                                <li>📅 Payout every: <span className="text-white font-semibold">{formData.cycleDuration} {formData.timeUnit}</span></li>
+                                <li>🎁 Pot size: <span className="text-white font-semibold">{(Number(formData.contributionAmount) * Number(formData.totalMembers)).toFixed(2)} {tokenSymbol}</span></li>
+                            </ul>
                         </div>
 
+                        {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={isPending}
-                            className="w-full bg-[#4c82fb] hover:bg-[#3b6dcf] disabled:bg-[#1b2236] disabled:text-gray-500 text-white font-bold py-4 px-6 rounded-[20px] text-xl transition-all mt-4 active:scale-[0.98]"
+                            disabled={isCreating || isPending}
+                            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-xl font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isPending ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    Creating Pool...
-                                </span>
-                            ) : (
-                                'Create Pool'
-                            )}
+                            {isCreating || isPending ? 'Creating Pool...' : 'Create Pool'}
                         </button>
                     </form>
                 </div>
