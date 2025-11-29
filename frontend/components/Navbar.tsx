@@ -40,8 +40,8 @@ export function Navbar() {
 
     return (
         <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled || isOpen
-            ? 'bg-black/80 backdrop-blur-xl border-b border-white/10'
-            : 'bg-transparent border-b border-transparent'
+            ? 'bg-black/90 backdrop-blur-xl border-b border-white/10 shadow-lg'
+            : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent'
             }`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
@@ -74,18 +74,33 @@ export function Navbar() {
                         {account && (
                             <Link
                                 href="/verify"
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isCheckingVerification
-                                        ? 'bg-gray-500/20 text-gray-400'
-                                        : isVerified
-                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
-                                            : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 animate-pulse'
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all bg-[#1a1b1c] border border-white/10 hover:bg-white/5 ${isCheckingVerification
+                                    ? 'text-gray-400'
+                                    : isVerified
+                                        ? 'text-green-400'
+                                        : 'text-yellow-400 animate-pulse'
                                     }`}
                             >
-                                {isCheckingVerification ? '⏳ Checking...' : isVerified ? '✅ Verified' : '⚠️ Verify Now'}
+                                {isCheckingVerification ? (
+                                    <>⏳ <span className="hidden sm:inline">Checking...</span></>
+                                ) : isVerified ? (
+                                    <>✅ <span className="hidden sm:inline">Verified</span></>
+                                ) : (
+                                    <>⚠️ <span className="hidden sm:inline">Verify Now</span></>
+                                )}
                             </Link>
                         )}
 
-                        <Link href="/pools/create" className="text-gray-300 hover:text-white transition-colors">
+                        <Link
+                            href="/pools"
+                            className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-[#1a1b1c] border border-white/10 hover:bg-white/5 transition-all"
+                        >
+                            Browse Pools
+                        </Link>
+                        <Link
+                            href="/pools/create"
+                            className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-[#1a1b1c] border border-white/10 hover:bg-white/5 transition-all"
+                        >
                             Create Pool
                         </Link>
                         <ConnectButton
@@ -116,10 +131,10 @@ export function Navbar() {
                                 href="/verify"
                                 onClick={() => setIsOpen(false)}
                                 className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${isCheckingVerification
-                                        ? 'bg-gray-500/20 text-gray-400'
-                                        : isVerified
-                                            ? 'bg-green-500/20 text-green-400'
-                                            : 'bg-yellow-500/20 text-yellow-400 animate-pulse'
+                                    ? 'bg-gray-500/20 text-gray-400'
+                                    : isVerified
+                                        ? 'bg-green-500/20 text-green-400'
+                                        : 'bg-yellow-500/20 text-yellow-400 animate-pulse'
                                     }`}
                             >
                                 {isCheckingVerification ? '⏳ Checking Verification...' : isVerified ? '✅ Verified' : '⚠️ Verify Your Identity'}

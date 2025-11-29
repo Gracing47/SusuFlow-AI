@@ -30,6 +30,12 @@ export async function getPoolInfo(poolAddress: string) {
             params: [],
         });
 
+        const maxMembers = await readContract({
+            contract,
+            method: 'function maxMembers() view returns (uint256)',
+            params: [],
+        });
+
         // Fetch dynamic state
         // Returns: (_memberCount, _currentRound, _nextPayoutTime, _potBalance, _isActive, _currentWinner)
         const poolState = await readContract({
@@ -41,6 +47,7 @@ export async function getPoolInfo(poolAddress: string) {
         return {
             contributionAmount,
             cycleDuration,
+            maxMembers,
             memberCount: poolState[0],
             currentRound: poolState[1],
             nextPayoutTime: poolState[2],

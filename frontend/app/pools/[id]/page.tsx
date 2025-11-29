@@ -174,7 +174,7 @@ export default function PoolDetailsPage() {
     const tokenSymbol = isNativeToken ? 'CELO' : 'cUSD';
 
     return (
-        <div className="min-h-screen bg-black text-white p-6 pb-24">
+        <div className="min-h-screen bg-black text-white pt-24 px-6 pb-24">
             <div className="max-w-md mx-auto space-y-8">
                 {/* Header */}
                 <div className="space-y-4">
@@ -189,8 +189,8 @@ export default function PoolDetailsPage() {
                                     Verified by Self
                                 </span>
                                 <span className={`px-2 py-1 rounded-lg text-[10px] font-semibold ${isNativeToken
-                                        ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
-                                        : 'bg-green-500/10 border border-green-500/20 text-green-400'
+                                    ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
+                                    : 'bg-green-500/10 border border-green-500/20 text-green-400'
                                     }`}>
                                     {isNativeToken ? '🪙 CELO' : '💵 cUSD'}
                                 </span>
@@ -202,12 +202,20 @@ export default function PoolDetailsPage() {
                     </div>
 
                     {/* Countdown Section */}
-                    <div className="bg-gradient-to-br from-purple-900/20 to-black rounded-2xl p-4 border border-purple-500/20">
-                        <div className="text-center mb-3">
-                            <span className="text-gray-400 text-xs uppercase tracking-widest">Next Payout In</span>
+                    {pool.isActive ? (
+                        <div className="bg-gradient-to-br from-purple-900/20 to-black rounded-2xl p-4 border border-purple-500/20">
+                            <div className="text-center mb-3">
+                                <span className="text-gray-400 text-xs uppercase tracking-widest">Next Payout In</span>
+                            </div>
+                            <CountdownTimer targetDate={nextPayoutDate} />
                         </div>
-                        <CountdownTimer targetDate={nextPayoutDate} />
-                    </div>
+                    ) : (
+                        <div className="bg-gradient-to-br from-green-900/20 to-black rounded-2xl p-4 border border-green-500/20">
+                            <div className="text-center">
+                                <span className="text-green-400 font-bold uppercase tracking-widest">Pool Completed</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Main Stats Card */}
@@ -232,7 +240,7 @@ export default function PoolDetailsPage() {
                         </div>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-400">Current Round</span>
-                            <span className="text-white font-medium">#{pool.currentRound.toString()}</span>
+                            <span className="text-white font-medium">#{pool.currentRound.toString()} / {pool.maxMembers.toString()}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-400">Cycle Duration</span>
@@ -259,7 +267,11 @@ export default function PoolDetailsPage() {
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    {member.hasContributed ? (
+                                    {!pool.isActive ? (
+                                        <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded-full border border-gray-500/20">
+                                            Completed
+                                        </span>
+                                    ) : member.hasContributed ? (
                                         <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full border border-green-500/20">
                                             Paid
                                         </span>
