@@ -40,8 +40,8 @@ export function Navbar() {
 
     return (
         <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled || isOpen
-            ? 'bg-black/80 backdrop-blur-xl border-b border-white/10'
-            : 'bg-transparent border-b border-transparent'
+                ? 'bg-black/90 backdrop-blur-xl border-b border-white/20 shadow-2xl shadow-purple-500/10'
+                : 'bg-black/60 backdrop-blur-md border-b border-white/10'
             }`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
@@ -75,10 +75,10 @@ export function Navbar() {
                             <Link
                                 href="/verify"
                                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isCheckingVerification
-                                        ? 'bg-gray-500/20 text-gray-400'
-                                        : isVerified
-                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
-                                            : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 animate-pulse'
+                                    ? 'bg-gray-500/20 text-gray-400'
+                                    : isVerified
+                                        ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
+                                        : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 animate-pulse'
                                     }`}
                             >
                                 {isCheckingVerification ? '⏳ Checking...' : isVerified ? '✅ Verified' : '⚠️ Verify Now'}
@@ -116,10 +116,10 @@ export function Navbar() {
                                 href="/verify"
                                 onClick={() => setIsOpen(false)}
                                 className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${isCheckingVerification
-                                        ? 'bg-gray-500/20 text-gray-400'
-                                        : isVerified
-                                            ? 'bg-green-500/20 text-green-400'
-                                            : 'bg-yellow-500/20 text-yellow-400 animate-pulse'
+                                    ? 'bg-gray-500/20 text-gray-400'
+                                    : isVerified
+                                        ? 'bg-green-500/20 text-green-400'
+                                        : 'bg-yellow-500/20 text-yellow-400 animate-pulse'
                                     }`}
                             >
                                 {isCheckingVerification ? '⏳ Checking Verification...' : isVerified ? '✅ Verified' : '⚠️ Verify Your Identity'}

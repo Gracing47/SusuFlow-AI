@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { prepareCreatePool } from '@/lib/contracts/factory';
 import { parseUnits } from 'ethers';
+import toast from 'react-hot-toast';
 
 export default function CreatePoolPage() {
     const account = useActiveAccount();
@@ -33,11 +34,12 @@ export default function CreatePoolPage() {
         // Check minimum duration (15 minutes = 900 seconds)
         const MIN_DURATION = 900; // 15 minutes in seconds
         if (durationInSeconds < MIN_DURATION) {
-            alert(`⚠️ Cycle duration must be at least 15 minutes (900 seconds).\n\nYour current setting: ${durationInSeconds} seconds\n\nPlease use at least 15 minutes.`);
+            toast.error(`⚠️ Cycle duration must be at least 15 minutes.\n\nYour current setting: ${durationInSeconds} seconds\n\nPlease use at least 15 minutes.`);
             return;
         }
 
         setIsCreating(true);
+        const toastId = toast.loading('Creating pool...');
 
         try {
             // Determine token address based on selection
@@ -57,18 +59,23 @@ export default function CreatePoolPage() {
             sendTransaction(transaction, {
                 onSuccess: (result) => {
                     console.log('Pool created!', result);
-                    alert(`Pool created successfully! Transaction: ${result.transactionHash}`);
-                    router.push('/pools');
+                    toast.success(`🎉 Pool created successfully!`, { id: toastId, duration: 5000 });
+
+                    // Auto-redirect and refresh after short delay
+                    setTimeout(() => {
+                        router.push('/pools');
+                        router.refresh();
+                    }, 1500);
                 },
                 onError: (error) => {
                     console.error('Error creating pool:', error);
-                    alert('Failed to create pool: ' + error.message);
+                    toast.error(`Failed to create pool: ${error.message}`, { id: toastId });
                     setIsCreating(false);
                 },
             });
         } catch (error: any) {
             console.error('Error preparing transaction:', error);
-            alert('Failed to prepare transaction: ' + error.message);
+            toast.error(`Failed to prepare transaction: ${error.message}`, { id: toastId });
             setIsCreating(false);
         }
     };

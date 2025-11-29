@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { getPoolInfo, getPoolMembersWithStatus, getPoolTokenInfo, prepareContribute, prepareJoinPool, prepareDistributePot } from '@/lib/contracts/pool';
 import { ConnectButton, useActiveAccount, useSendTransaction } from 'thirdweb/react';
 import { formatUnits } from 'ethers';
@@ -10,9 +10,11 @@ import { getContract } from 'thirdweb';
 import { celo } from 'thirdweb/chains';
 import { approve } from 'thirdweb/extensions/erc20';
 import { CountdownTimer } from '@/components/CountdownTimer';
+import toast from 'react-hot-toast';
 
 export default function PoolDetailsPage() {
     const params = useParams();
+    const router = useRouter();
     const id = params?.id as string;
     const account = useActiveAccount();
     const { mutateAsync: sendTransaction, isPending } = useSendTransaction();
@@ -25,6 +27,38 @@ export default function PoolDetailsPage() {
     const [error, setError] = useState('');
     const [isNativeToken, setIsNativeToken] = useState(false);
     const [tokenAddress, setTokenAddress] = useState('');
+
+    // Function to refresh pool data
+    const refreshPoolData = async () => {
+        if (!id) return;
+        try {
+            const [poolData, tokenInfo] = await Promise.all([
+                getPoolInfo(id),
+                getPoolTokenInfo(id)
+            ]);
+
+            if (poolData) {
+                setPool(poolData);
+                setIsNativeToken(tokenInfo.isNativeToken);
+                setTokenAddress(tokenInfo.tokenAddress);
+
+                const membersData = await getPoolMembersWithStatus(id, poolData.currentRound, poolData.contributionAmount);
+                setMembers(membersData);
+
+                if (account) {
+                    const userMember = membersData.find(
+                        (m) => m.address.toLowerCase() === account.address.toLowerCase()
+                    );
+                    setIsMember(!!userMember);
+                    if (userMember) {
+                        setUserHasContributed(userMember.hasContributed);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error refreshing pool data:', err);
+        }
+    };
 
     useEffect(() => {
         if (!id) return;
@@ -71,11 +105,17 @@ export default function PoolDetailsPage() {
 
     const handleJoin = async () => {
         if (!account) return;
+        const toastId = toast.loading('Joining pool...');
         try {
             const transaction = prepareJoinPool(id);
             await sendTransaction(transaction);
-            alert('Successfully joined the pool!');
-            window.location.reload();
+            toast.success('🎉 Successfully joined the pool!', { id: toastId });
+
+            // Auto-refresh pool data
+            setTimeout(async () => {
+                await refreshPoolData();
+                router.refresh();
+            }, 1500);
         } catch (err: any) {
             console.error(err);
             let message = err.message || 'Unknown error';
@@ -88,20 +128,26 @@ export default function PoolDetailsPage() {
                 message = 'You are already a member of this pool.';
             }
 
-            alert('Failed to join pool: ' + message);
+            toast.error(`Failed to join pool: ${message}`, { id: toastId });
         }
     };
 
     const handleContribute = async () => {
         if (!pool || !account) return;
+        const toastId = toast.loading(isNativeToken ? 'Processing contribution...' : 'Step 1/2: Approving tokens...');
 
         try {
             if (isNativeToken) {
                 // Native CELO: send value directly with transaction
                 const transaction = prepareContribute(id, pool.contributionAmount);
                 await sendTransaction(transaction);
-                alert('Contribution successful!');
-                window.location.reload();
+                toast.success('💰 Contribution successful!', { id: toastId });
+
+                // Auto-refresh pool data
+                setTimeout(async () => {
+                    await refreshPoolData();
+                    router.refresh();
+                }, 1500);
             } else {
                 // ERC20 (cUSD): approve first, then contribute
                 // 1. Approve token spending
@@ -118,27 +164,39 @@ export default function PoolDetailsPage() {
                 });
 
                 await sendTransaction(approveTx);
+                toast.loading('Step 2/2: Contributing...', { id: toastId });
 
                 // 2. Call contribute
                 const transaction = prepareContribute(id);
                 await sendTransaction(transaction);
 
-                alert('Contribution successful!');
-                window.location.reload();
+                toast.success('💰 Contribution successful!', { id: toastId });
+
+                // Auto-refresh pool data
+                setTimeout(async () => {
+                    await refreshPoolData();
+                    router.refresh();
+                }, 1500);
             }
         } catch (err: any) {
             console.error(err);
-            alert('Contribution failed: ' + err.message);
+            toast.error(`Contribution failed: ${err.message}`, { id: toastId });
         }
     };
 
     const handleDistribute = async () => {
         if (!account) return;
+        const toastId = toast.loading('Distributing pot...');
         try {
             const transaction = prepareDistributePot(id);
             await sendTransaction(transaction);
-            alert('Pot distributed successfully!');
-            window.location.reload();
+            toast.success('🏆 Pot distributed successfully!', { id: toastId });
+
+            // Auto-refresh pool data
+            setTimeout(async () => {
+                await refreshPoolData();
+                router.refresh();
+            }, 1500);
         } catch (err: any) {
             console.error(err);
             let message = err.message || 'Unknown error';
@@ -147,7 +205,7 @@ export default function PoolDetailsPage() {
             } else if (message.includes('PayoutNotReady')) {
                 message = 'Payout is not ready yet (time not reached).';
             }
-            alert('Failed to distribute pot: ' + message);
+            toast.error(`Failed to distribute pot: ${message}`, { id: toastId });
         }
     };
 
@@ -189,8 +247,8 @@ export default function PoolDetailsPage() {
                                     Verified by Self
                                 </span>
                                 <span className={`px-2 py-1 rounded-lg text-[10px] font-semibold ${isNativeToken
-                                        ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
-                                        : 'bg-green-500/10 border border-green-500/20 text-green-400'
+                                    ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
+                                    : 'bg-green-500/10 border border-green-500/20 text-green-400'
                                     }`}>
                                     {isNativeToken ? '🪙 CELO' : '💵 cUSD'}
                                 </span>

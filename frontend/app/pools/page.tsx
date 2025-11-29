@@ -11,15 +11,32 @@ export default function PoolsPage() {
     const account = useActiveAccount();
     const [pools, setPools] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const fetchPools = async () => {
+        try {
+            const poolAddresses = await getAllPools();
+            setPools([...poolAddresses]);
+        } catch (error) {
+            console.error('Failed to fetch pools:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
-        async function fetchPools() {
-            const poolAddresses = await getAllPools();
-            setPools([...poolAddresses]); // Convert readonly array to mutable array
-            setLoading(false);
-        }
         fetchPools();
+
+        // Auto-refresh every 30 seconds
+        const interval = setInterval(fetchPools, 30000);
+        return () => clearInterval(interval);
     }, []);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await fetchPools();
+    };
 
     if (!account) {
         return (
@@ -50,7 +67,24 @@ export default function PoolsPage() {
 
             <main className="container mx-auto px-4 py-8">
                 <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-3xl font-bold text-white">Active Pools</h2>
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-3xl font-bold text-white">Active Pools</h2>
+                        <button
+                            onClick={handleRefresh}
+                            disabled={refreshing}
+                            className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors disabled:opacity-50"
+                            title="Refresh pools"
+                        >
+                            <svg
+                                className={`w-5 h-5 text-white ${refreshing ? 'animate-spin' : ''}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
                     <Link
                         href="/pools/create"
                         className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-semibold hover:scale-105 transition-transform"
