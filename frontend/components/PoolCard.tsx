@@ -24,10 +24,10 @@ export function PoolCard({ address }: PoolCardProps) {
 
     if (loading) {
         return (
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 animate-pulse">
-                <div className="h-6 bg-white/10 rounded mb-4"></div>
-                <div className="h-4 bg-white/10 rounded mb-2"></div>
-                <div className="h-4 bg-white/10 rounded"></div>
+            <div className="bg-[#131a2a] rounded-[24px] p-6 border border-white/5 animate-pulse">
+                <div className="h-6 bg-[#0d111c] rounded mb-4"></div>
+                <div className="h-4 bg-[#0d111c] rounded mb-2"></div>
+                <div className="h-4 bg-[#0d111c] rounded"></div>
             </div>
         );
     }
@@ -43,33 +43,42 @@ export function PoolCard({ address }: PoolCardProps) {
 
     return (
         <Link href={`/pools/${address}`}>
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-purple-500/50 transition-all hover:scale-105 cursor-pointer">
-                <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-white font-semibold">
-                        Pool {address.slice(0, 6)}...{address.slice(-4)}
-                    </h3>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
+            <div className="bg-[#131a2a] rounded-[24px] p-6 border border-white/5 hover:border-white/20 transition-all hover:-translate-y-1 cursor-pointer shadow-lg hover:shadow-xl">
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 className="text-white font-bold text-lg mb-1">
+                            Pool {address.slice(0, 6)}...
+                        </h3>
+                        <p className="text-gray-500 text-xs font-mono">{address}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${isActive
+                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                        : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
                         }`}>
                         {isActive ? 'Active' : 'Inactive'}
                     </span>
                 </div>
 
-                <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-gray-300">
-                        <span>💰 Contribution:</span>
-                        <span className="text-white font-semibold">{contributionAmount} cUSD</span>
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-[#0d111c] rounded-[16px]">
+                        <span className="text-gray-400 text-sm">Contribution</span>
+                        <span className="text-white font-bold">{contributionAmount} CELO/cUSD</span>
                     </div>
-                    <div className="flex justify-between text-gray-300">
-                        <span>👥 Members:</span>
-                        <span className="text-white font-semibold">{memberCount}</span>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-[#0d111c] rounded-[16px]">
+                            <span className="text-gray-400 text-xs block mb-1">Members</span>
+                            <span className="text-white font-bold">{memberCount}</span>
+                        </div>
+                        <div className="p-3 bg-[#0d111c] rounded-[16px]">
+                            <span className="text-gray-400 text-xs block mb-1">Pot Size</span>
+                            <span className="text-white font-bold">{(Number(contributionAmount) * memberCount).toFixed(2)}</span>
+                        </div>
                     </div>
-                    <div className="flex justify-between text-gray-300">
+
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
                         <span>📅 Next Payout:</span>
-                        <span className="text-white font-semibold">{nextPayout.toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                        <span>🎁 Pot Size:</span>
-                        <span className="text-white font-semibold">{(Number(contributionAmount) * memberCount).toFixed(2)} cUSD</span>
+                        <span className="text-gray-300">{nextPayout.toLocaleDateString()}</span>
                     </div>
                 </div>
             </div>
