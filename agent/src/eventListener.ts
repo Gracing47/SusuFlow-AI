@@ -12,11 +12,16 @@ export class EventListener {
     private isPolling: boolean = false;
     private pollInterval: NodeJS.Timeout | null = null;
     private readonly POLL_INTERVAL_MS = 5000; // Poll every 5 seconds
+    private onNewPoolCallback?: (poolAddress: string) => Promise<void>;
 
     constructor(
         private rpcUrl: string,
         private factoryAddress: string
     ) { }
+
+    setNewPoolCallback(callback: (poolAddress: string) => Promise<void>): void {
+        this.onNewPoolCallback = callback;
+    }
 
     async initialize(): Promise<void> {
         logger.info(`🔌 Connecting to Celo blockchain (HTTP Polling)...`);
@@ -37,18 +42,8 @@ export class EventListener {
             this.provider
         );
 
-        // Fetch existing pools
-        try {
-            logger.info('📥 Fetching existing pools...');
-            const pools = await this.factoryContract.getAllPools();
-            logger.info(`📊 Found ${pools.length} existing pools`);
-
-            for (const pool of pools) {
-                await this.listenToPool(pool);
-            }
-        } catch (error: any) {
-            logger.error(`❌ Failed to fetch existing pools: ${error.message}`);
-        }
+        // Pool loading will be handled by the main agent
+        // This ensures proper coordination with PoolMonitor
 
         // Start the polling loop
         this.startPolling();
@@ -112,8 +107,13 @@ export class EventListener {
                     block: event.blockNumber
                 });
 
-                // Register new pool for monitoring
+                // Register new pool for event listening
                 await this.listenToPool(pool);
+
+                // Notify main agent via callback
+                if (this.onNewPoolCallback) {
+                    await this.onNewPoolCallback(pool);
+                }
             }
         }
     }
