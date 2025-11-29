@@ -71,7 +71,9 @@ export class EventListener {
 
     private async pollEvents(): Promise<void> {
         try {
-            const currentBlock = await this.provider.getBlockNumber() - 1;
+            // Increase lag to 5 blocks to avoid "block out of range" errors
+            const BLOCK_LAG = 5;
+            const currentBlock = await this.provider.getBlockNumber() - BLOCK_LAG;
 
             // If no new blocks, skip
             if (currentBlock <= this.lastBlockChecked) return;
@@ -87,34 +89,32 @@ export class EventListener {
             // 2. Check Pool Events
             await this.checkPoolEvents(fromBlock, toBlock);
 
-            // Update checkpoint
+            // Update checkpoint only if successful
             this.lastBlockChecked = toBlock;
 
         } catch (error: any) {
-            logger.error('⚠️ Failed to poll events:', error.message);
+            // If we fail, we don't update lastBlockChecked, so we'll retry next time
+            logger.error('⚠️ Failed to poll events (will retry):', error.message);
         }
     }
 
     private async checkFactoryEvents(fromBlock: number, toBlock: number): Promise<void> {
-        try {
-            const events = await this.factoryContract.queryFilter('PoolCreated', fromBlock, toBlock);
+        // Let errors bubble up to pollEvents so we don't advance block number on failure
+        const events = await this.factoryContract.queryFilter('PoolCreated', fromBlock, toBlock);
 
-            for (const event of events) {
-                if (event instanceof ethers.EventLog) {
-                    const { pool, creator } = event.args;
-                    logger.info('🆕 New pool created!', {
-                        pool,
-                        creator,
-                        txHash: event.transactionHash,
-                        block: event.blockNumber
-                    });
+        for (const event of events) {
+            if (event instanceof ethers.EventLog) {
+                const { pool, creator } = event.args;
+                logger.info('🆕 New pool created!', {
+                    pool,
+                    creator,
+                    txHash: event.transactionHash,
+                    block: event.blockNumber
+                });
 
-                    // Register new pool for monitoring
-                    await this.listenToPool(pool);
-                }
+                // Register new pool for monitoring
+                await this.listenToPool(pool);
             }
-        } catch (error: any) {
-            logger.warn(`Failed to query factory events: ${error.message}`);
         }
     }
 
@@ -131,7 +131,11 @@ export class EventListener {
                     }
                 }
             } catch (error: any) {
-                // Don't fail entire loop if one pool fails
+                // If it's a block range error, rethrow it to stop the polling loop and retry later
+                if (error.message?.includes('block is out of range') || error.code === -32019) {
+                    throw error;
+                }
+                // Otherwise, log warning for this specific pool but continue with others
                 logger.warn(`Failed to query events for pool ${address}: ${error.message}`);
             }
         }
