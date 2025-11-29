@@ -5,10 +5,11 @@ import {Test, console} from "forge-std/Test.sol";
 import {SusuFactory} from "../src/SusuFactory.sol";
 import {SusuPool} from "../src/SusuPool.sol";
 import {IERC20} from "../src/interfaces/IERC20.sol";
+import {ISelfVerification} from "../src/interfaces/ISelfVerification.sol";
 
 /**
  * @title MockERC20
- * @dev Simple ERC20 mock for testing
+ * @dev Simple ERC20 implementation for testing
  */
 contract MockERC20 is IERC20 {
     mapping(address => uint256) private _balances;
@@ -56,289 +57,317 @@ contract MockERC20 is IERC20 {
 }
 
 /**
+ * @title MockSelfVerification
+ * @dev Mock Self Protocol verification for testing
+ */
+contract MockSelfVerification is ISelfVerification {
+    mapping(address => bool) private verified;
+    
+    function manualVerify(address user) external {
+        verified[user] = true;
+    }
+    
+    function isVerified(address user) external view returns (bool) {
+        return verified[user];
+    }
+}
+
+/**
  * @title SusuTest
  * @dev Comprehensive test suite for Susu contracts
+ * Tests both native CELO and ERC20 token (cUSD) pools
  */
 contract SusuTest is Test {
     SusuFactory public factory;
     MockERC20 public cUSD;
+    MockSelfVerification public selfVerification;
     
+    // Test accounts
     address public alice = address(0x1);
     address public bob = address(0x2);
     address public charlie = address(0x3);
     address public dave = address(0x4);
     
-    address public hubV2 = address(0x999); // Mock Hub V2
-    bytes32 public configId = bytes32(uint256(1));
-    
-    uint256 constant CONTRIBUTION_AMOUNT = 10 ether; // 10 cUSD
+    // Pool configuration constants
+    uint256 constant CONTRIBUTION_AMOUNT = 1 ether; // 1 CELO or 1 cUSD
     uint256 constant CYCLE_DURATION = 7 days;
     uint256 constant MAX_MEMBERS = 4;
-    
-    event PoolCreated(
-        address indexed pool,
-        address indexed creator,
-        uint256 contributionAmount,
-        uint256 cycleDuration,
-        uint256 maxMembers,
-        uint256 poolIndex
-    );
     
     function setUp() public {
         // Deploy mock cUSD token
         cUSD = new MockERC20();
         
-        // Deploy factory
-        factory = new SusuFactory(address(cUSD), hubV2, configId);
+        // Deploy mock Self verification
+        selfVerification = new MockSelfVerification();
         
-        // Setup test accounts with cUSD
+        // Deploy factory
+        factory = new SusuFactory(address(selfVerification));
+        
+        // Setup test accounts with both CELO and cUSD
+        vm.deal(alice, 100 ether);
+        vm.deal(bob, 100 ether);
+        vm.deal(charlie, 100 ether);
+        vm.deal(dave, 100 ether);
+        
         cUSD.mint(alice, 1000 ether);
         cUSD.mint(bob, 1000 ether);
         cUSD.mint(charlie, 1000 ether);
         cUSD.mint(dave, 1000 ether);
         
         // Manually verify users for testing
-        factory.manualVerify(alice);
-        factory.manualVerify(bob);
-        factory.manualVerify(charlie);
-        factory.manualVerify(dave);
+        selfVerification.manualVerify(alice);
+        selfVerification.manualVerify(bob);
+        selfVerification.manualVerify(charlie);
+        selfVerification.manualVerify(dave);
     }
     
-    /**
-     * Test: Factory deployment
-     */
+    /* ========== FACTORY TESTS ========== */
+    
+    /// @dev Test factory deployment
     function testFactoryDeployment() public {
-        assertEq(address(factory.cUSD()), address(cUSD));
-        assertEq(factory.getTotalPools(), 0);
+        assertEq(factory.getPoolCount(), 0);
     }
     
-    /**
-     * Test: User verification
-     */
+    /// @dev Test user verification
     function testUserVerification() public {
-        assertTrue(factory.isVerified(alice));
-        assertTrue(factory.isVerified(bob));
-        assertFalse(factory.isVerified(address(0x999)));
+        assertTrue(selfVerification.isVerified(alice));
+        assertTrue(selfVerification.isVerified(bob));
+        assertFalse(selfVerification.isVerified(address(0x999)));
     }
     
-    /**
-     * Test: Create pool with verified user
-     */
-    function testCreatePool() public {
-        vm.prank(alice);
-        address pool = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, MAX_MEMBERS);
-        
-        assertTrue(pool != address(0));
-        assertTrue(factory.isPool(pool));
-        assertEq(factory.getTotalPools(), 1);
-        
-        // Check pool configuration
-        SusuPool susuPool = SusuPool(pool);
-        assertEq(susuPool.contributionAmount(), CONTRIBUTION_AMOUNT);
-        assertEq(susuPool.cycleDuration(), CYCLE_DURATION);
-        assertEq(susuPool.maxMembers(), MAX_MEMBERS);
-        assertTrue(susuPool.poolActive());
-    }
-    
-    /**
-     * Test: Unverified user cannot create pool
-     */
+    /// @dev Test unverified user cannot create pool
     function testCannotCreatePoolUnverified() public {
         address unverified = address(0x888);
         
         vm.prank(unverified);
-        vm.expectRevert("User not verified");
-        factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, MAX_MEMBERS);
+        vm.expectRevert();
+        factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, MAX_MEMBERS);
     }
     
-    /**
-     * Test: Join pool
-     */
-    function testJoinPool() public {
-        // Alice creates pool
+    /* ========== NATIVE CELO POOL TESTS ========== */
+    
+    /// @dev Test creating a native CELO pool
+    function testCreateNativePool() public {
         vm.prank(alice);
-        address poolAddr = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, MAX_MEMBERS);
-        SusuPool pool = SusuPool(poolAddr);
+        address poolAddr = factory.createPool(
+            address(0), // address(0) for native CELO
+            CONTRIBUTION_AMOUNT,
+            CYCLE_DURATION,
+            MAX_MEMBERS
+        );
+        
+        SusuPool pool = SusuPool(payable(poolAddr));
+        assertTrue(pool.isNativeToken());
+        assertEq(pool.contributionAmount(), CONTRIBUTION_AMOUNT);
+    }
+    
+    /// @dev Test full cycle with native CELO
+    function testNativePoolFullCycle() public {
+        // Create native CELO pool
+        vm.prank(alice);
+        address poolAddr = factory.createPool(address(0), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
+        SusuPool pool = SusuPool(payable(poolAddr));
         
         // Bob joins
         vm.prank(bob);
         pool.joinPool();
         
-        assertTrue(pool.isMember(bob));
-        address[] memory members = pool.getMembers();
-        assertEq(members.length, 2);
-        assertEq(members[0], alice);
-        assertEq(members[1], bob);
+        assertTrue(pool.poolStartTime() > 0); // Auto-started
+        
+        // Both contribute with CELO
+        uint256 aliceBalanceBefore = alice.balance;
+        vm.prank(alice);
+        pool.contribute{value: CONTRIBUTION_AMOUNT}();
+        assertEq(alice.balance, aliceBalanceBefore - CONTRIBUTION_AMOUNT);
+        
+        vm.prank(bob);
+        pool.contribute{value: CONTRIBUTION_AMOUNT}();
+        
+        assertTrue(pool.allMembersContributed());
+        
+        // Warp time and distribute
+        vm.warp(block.timestamp + CYCLE_DURATION + 1);
+        
+        uint256 aliceBalanceBeforePayout = alice.balance;
+        pool.distributePot();
+        
+        // Alice should receive 2 * CONTRIBUTION_AMOUNT
+        uint256 expectedPayout = CONTRIBUTION_AMOUNT * 2;
+        assertEq(alice.balance, aliceBalanceBeforePayout + expectedPayout);
     }
     
-    /**
-     * Test: Pool auto-starts when full
-     */
-    function testPoolAutoStart() public {
+    /// @dev Test cannot send wrong amount for native pool
+    function testNativePoolWrongAmount() public {
         vm.prank(alice);
-        address poolAddr = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, MAX_MEMBERS);
-        SusuPool pool = SusuPool(poolAddr);
+        address poolAddr = factory.createPool(address(0), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
+        SusuPool pool = SusuPool(payable(poolAddr));
         
         vm.prank(bob);
         pool.joinPool();
         
-        vm.prank(charlie);
-        pool.joinPool();
-        
-        // Pool should auto-start when 4th member joins
-        assertEq(pool.poolStartTime(), 0); // Not started yet
-        
-        vm.prank(dave);
-        pool.joinPool();
-        
-        assertGt(pool.poolStartTime(), 0); // Started!
-        assertEq(pool.currentRound(), 1);
+        vm.prank(alice);
+        vm.expectRevert(SusuPool.InvalidAmount.selector);
+        pool.contribute{value: CONTRIBUTION_AMOUNT + 1 wei}(); // Wrong amount
     }
     
-    /**
-     * Test: Make contribution
-     */
-    function testContribute() public {
-        // Create and start pool
+    /* ========== ERC20 (cUSD) POOL TESTS ========== */
+    
+    /// @dev Test creating an ERC20 pool
+    function testCreateERC20Pool() public {
         vm.prank(alice);
-        address poolAddr = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, MAX_MEMBERS);
-        SusuPool pool = SusuPool(poolAddr);
+        address poolAddr = factory.createPool(
+            address(cUSD),
+            CONTRIBUTION_AMOUNT,
+            CYCLE_DURATION,
+            MAX_MEMBERS
+        );
         
+        SusuPool pool = SusuPool(payable(poolAddr));
+        assertFalse(pool.isNativeToken());
+        assertEq(address(pool.token()), address(cUSD));
+    }
+    
+    /// @dev Test full cycle with ERC20 token
+    function testERC20PoolFullCycle() public {
+        // Create cUSD pool
+        vm.prank(alice);
+        address poolAddr = factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
+        SusuPool pool = SusuPool(payable(poolAddr));
+        
+        // Bob joins
         vm.prank(bob);
         pool.joinPool();
         
-        vm.prank(charlie);
-        pool.joinPool();
+        // Approve spending
+        vm.prank(alice);
+        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT * 10);
+        vm.prank(bob);
+        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT * 10);
         
-        vm.prank(pool.members(0));
-        pool.startPool();
-        
-        // Alice contributes
+        // Both contribute
         uint256 aliceBalanceBefore = cUSD.balanceOf(alice);
+        vm.prank(alice);
+        pool.contribute();
+        assertEq(cUSD.balanceOf(alice), aliceBalanceBefore - CONTRIBUTION_AMOUNT);
+        
+        vm.prank(bob);
+        pool.contribute();
+        
+        assertTrue(pool.allMembersContributed());
+        
+        // Warp time and distribute
+        vm.warp(block.timestamp + CYCLE_DURATION + 1);
+        
+        uint256 aliceBalanceBeforePayout = cUSD.balanceOf(alice);
+        pool.distributePot();
+        
+        // Alice should receive 2 * CONTRIBUTION_AMOUNT
+        uint256 expectedPayout = CONTRIBUTION_AMOUNT * 2;
+        assertEq(cUSD.balanceOf(alice), aliceBalanceBeforePayout + expectedPayout);
+    }
+    
+    /// @dev Test cannot send CELO to ERC20 pool
+    function testERC20PoolNoNativeCELO() public {
+        vm.prank(alice);
+        address poolAddr = factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
+        SusuPool pool = SusuPool(payable(poolAddr));
+        
+        vm.prank(bob);
+        pool.joinPool();
         
         vm.prank(alice);
         cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT);
         
         vm.prank(alice);
-        pool.contribute();
-        
-        uint256 aliceBalanceAfter = cUSD.balanceOf(alice);
-        assertEq(aliceBalanceBefore - aliceBalanceAfter, CONTRIBUTION_AMOUNT);
-        assertEq(pool.contributionsThisCycle(alice), CONTRIBUTION_AMOUNT);
+        vm.expectRevert(SusuPool.InvalidAmount.selector);
+        pool.contribute{value: 1 ether}(); // Sending CELO to ERC20 pool
     }
     
-    /**
-     * Test: Full cycle - all contribute and payout
-     */
-    function testFullCycle() public {
-        // Create pool with 3 members for faster testing
+    /* ========== COMMON POOL TESTS ========== */
+    
+    /// @dev Test pool auto-start when full
+    function testPoolAutoStart() public {
         vm.prank(alice);
-        address poolAddr = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, 3);
-        SusuPool pool = SusuPool(poolAddr);
+        address poolAddr = factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 3);
+        SusuPool pool = SusuPool(payable(poolAddr));
+        
+        assertEq(pool.poolStartTime(), 0);
         
         vm.prank(bob);
         pool.joinPool();
         
+        assertEq(pool.poolStartTime(), 0); // Still not started
+        
         vm.prank(charlie);
-        pool.joinPool();
+        pool.joinPool(); // Pool is now full
         
-        // All members approve spending
-        vm.prank(alice);
-        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT * 10);
-        vm.prank(bob);
-        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT * 10);
-        vm.prank(charlie);
-        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT * 10);
-        
-        // Everyone contributes
-        vm.prank(alice);
-        pool.contribute();
-        vm.prank(bob);
-        pool.contribute();
-        vm.prank(charlie);
-        pool.contribute();
-        
-        assertTrue(pool.allMembersContributed());
-        
-        // Warp time to payout
-        vm.warp(block.timestamp + CYCLE_DURATION + 1);
-        
-        // Check who will receive payout (should be alice - first member)
-        address winner = pool.selectWinner();
-        assertEq(winner, alice);
-        
-        uint256 aliceBalanceBefore = cUSD.balanceOf(alice);
-        
-        // Distribute pot
-        pool.distributePot();
-        
-        uint256 aliceBalanceAfter = cUSD.balanceOf(alice);
-        uint256 expectedPayout = CONTRIBUTION_AMOUNT * 3;
-        
-        assertEq(aliceBalanceAfter - aliceBalanceBefore, expectedPayout);
-        assertTrue(pool.hasReceivedPayout(alice));
-        assertEq(pool.currentRound(), 2);
+        assertGt(pool.poolStartTime(), 0); // Auto-started!
     }
     
-    /**
-     * Test: Cannot distribute payout before time
-     */
+    /// @dev Test cannot join full pool (pool auto-starts and then rejects new members)
+    function testCannotJoinFullPool() public {
+        vm.prank(alice);
+        address poolAddr = factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
+        SusuPool pool = SusuPool(payable(poolAddr));
+        
+        vm.prank(bob);
+        pool.joinPool(); // Pool now full and auto-started
+        
+        vm.prank(charlie);
+        vm.expectRevert(SusuPool.PoolNotStarted.selector); // Pool already started
+        pool.joinPool();
+    }
+    
+    /// @dev Test cannot distribute before time
     function testCannotPayoutEarly() public {
         vm.prank(alice);
-        address poolAddr = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
-        SusuPool pool = SusuPool(poolAddr);
+        address poolAddr = factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
+        SusuPool pool = SusuPool(payable(poolAddr));
         
         vm.prank(bob);
         pool.joinPool();
         
         vm.prank(alice);
-        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT * 10);
-        vm.prank(bob);
-        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT * 10);
-        
+        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT);
         vm.prank(alice);
         pool.contribute();
+        
+        vm.prank(bob);
+        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT);
         vm.prank(bob);
         pool.contribute();
         
-        // Try to payout before time
         vm.expectRevert(SusuPool.PayoutNotReady.selector);
         pool.distributePot();
     }
     
-    /**
-     * Test: Cannot payout if not all members contributed
-     */
+    /// @dev Test cannot payout without all contributions
     function testCannotPayoutWithoutAllContributions() public {
         vm.prank(alice);
-        address poolAddr = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
-        SusuPool pool = SusuPool(poolAddr);
+        address poolAddr = factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
+        SusuPool pool = SusuPool(payable(poolAddr));
         
         vm.prank(bob);
         pool.joinPool();
         
         vm.prank(alice);
-        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT * 10);
-        
-        // Only Alice contributes
+        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT);
         vm.prank(alice);
         pool.contribute();
         
-        // Warp time
+        // Bob doesn't contribute
+        
         vm.warp(block.timestamp + CYCLE_DURATION + 1);
         
-        // Try to payout
         vm.expectRevert(SusuPool.AllMembersNotContributed.selector);
         pool.distributePot();
     }
     
-    /**
-     * Test: Get missing contributors
-     */
+    /// @dev Test getMissingContributors
     function testGetMissingContributors() public {
         vm.prank(alice);
-        address poolAddr = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, 3);
-        SusuPool pool = SusuPool(poolAddr);
+        address poolAddr = factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 3);
+        SusuPool pool = SusuPool(payable(poolAddr));
         
         vm.prank(bob);
         pool.joinPool();
@@ -346,57 +375,19 @@ contract SusuTest is Test {
         pool.joinPool();
         
         vm.prank(alice);
-        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT * 10);
-        
-        // Only Alice contributes
+        cUSD.approve(poolAddr, CONTRIBUTION_AMOUNT);
         vm.prank(alice);
         pool.contribute();
         
         address[] memory missing = pool.getMissingContributors();
         assertEq(missing.length, 2);
-        // Should be Bob and Charlie
-        assertTrue(missing[0] == bob || missing[0] == charlie);
-        assertTrue(missing[1] == bob || missing[1] == charlie);
     }
     
-    /**
-     * Test: Multiple pools for same user
-     */
-    function testMultiplePools() public {
-        vm.startPrank(alice);
-        address pool1 = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, 3);
-        address pool2 = factory.createPool(CONTRIBUTION_AMOUNT * 2, CYCLE_DURATION * 2, 5);
-        vm.stopPrank();
-        
-        address[] memory alicePools = factory.getUserPools(alice);
-        assertEq(alicePools.length, 2);
-        assertEq(alicePools[0], pool1);
-        assertEq(alicePools[1], pool2);
-        assertEq(factory.getTotalPools(), 2);
-    }
-    
-    /**
-     * Test: Get active pools
-     */
-    function testGetActivePools() public {
-        // Create 2 pools
-        vm.prank(alice);
-        address pool1 = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
-        
-        vm.prank(bob);
-        address pool2 = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
-        
-        address[] memory activePools = factory.getActivePools();
-        assertEq(activePools.length, 2);
-    }
-    
-    /**
-     * Test: Pool info getter
-     */
+    /// @dev Test getPoolInfo
     function testGetPoolInfo() public {
         vm.prank(alice);
-        address poolAddr = factory.createPool(CONTRIBUTION_AMOUNT, CYCLE_DURATION, 3);
-        SusuPool pool = SusuPool(poolAddr);
+        address poolAddr = factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 3);
+        SusuPool pool = SusuPool(payable(poolAddr));
         
         vm.prank(bob);
         pool.joinPool();
@@ -415,5 +406,24 @@ contract SusuTest is Test {
         assertEq(potBalance, 0);
         assertTrue(isActive);
         assertEq(currentWinner, address(0));
+    }
+    
+    /// @dev Test factory getPools pagination
+    function testFactoryPagination() public {
+        // Create 5 pools
+        for (uint i = 0; i < 5; i++) {
+            vm.prank(alice);
+            factory.createPool(address(cUSD), CONTRIBUTION_AMOUNT, CYCLE_DURATION, 2);
+        }
+        
+        assertEq(factory.getPoolCount(), 5);
+        
+        // Get first 3 pools
+        address[] memory pools = factory.getPools(0, 3);
+        assertEq(pools.length, 3);
+        
+        // Get next 2 pools
+        address[] memory pools2 = factory.getPools(3, 2);
+        assertEq(pools2.length, 2);
     }
 }

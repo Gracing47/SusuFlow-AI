@@ -15,8 +15,8 @@ export async function getAllPools() {
     try {
         const pools = await readContract({
             contract: factoryContract,
-            method: 'function getAllPools(uint256 start, uint256 limit) view returns (address[])',
-            params: [0n, 100n], // Get first 100 pools
+            method: 'function getAllPools() view returns (address[])',
+            params: [],
         });
         return pools;
     } catch (error) {
@@ -26,15 +26,17 @@ export async function getAllPools() {
 }
 
 // Prepare create pool transaction
+// tokenAddress: address(0) for native CELO, or ERC20 address for tokens like cUSD
 export function prepareCreatePool(
+    tokenAddress: string,
     contributionAmount: bigint,
     cycleDuration: bigint,
     totalMembers: bigint
 ) {
     return prepareContractCall({
         contract: factoryContract,
-        method: 'function createPool(uint256 _contributionAmount, uint256 _cycleDuration, uint256 _totalMembers) returns (address)',
-        params: [contributionAmount, cycleDuration, totalMembers],
+        method: 'function createPool(address _token, uint256 _contributionAmount, uint256 _cycleDuration, uint256 _maxMembers) returns (address)',
+        params: [tokenAddress, contributionAmount, cycleDuration, totalMembers],
     });
 }
 

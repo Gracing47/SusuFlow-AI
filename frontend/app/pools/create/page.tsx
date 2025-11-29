@@ -15,6 +15,7 @@ export default function CreatePoolPage() {
     const [isCreating, setIsCreating] = useState(false);
 
     const [formData, setFormData] = useState({
+        tokenType: 'native', // 'native' for CELO or 'cusd' for cUSD
         contributionAmount: '1',
         totalMembers: '3',
         cycleDuration: '15',
@@ -23,22 +24,34 @@ export default function CreatePoolPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Convert to seconds based on time unit
+        const durationInSeconds = formData.timeUnit === 'minutes'
+            ? Number(formData.cycleDuration) * 60
+            : Number(formData.cycleDuration) * 24 * 60 * 60;
+
+        // Check minimum duration (15 minutes = 900 seconds)
+        const MIN_DURATION = 900; // 15 minutes in seconds
+        if (durationInSeconds < MIN_DURATION) {
+            alert(`⚠️ Cycle duration must be at least 15 minutes (900 seconds).\n\nYour current setting: ${durationInSeconds} seconds\n\nPlease use at least 15 minutes.`);
+            return;
+        }
+
         setIsCreating(true);
 
         try {
+            // Determine token address based on selection
+            const tokenAddress = formData.tokenType === 'native'
+                ? '0x0000000000000000000000000000000000000000' // address(0) for native CELO
+                : '0x765DE816845861e75A25fCA122bb6898B8B1282a'; // cUSD on Celo Mainnet
+
             // Convert values to contract format
-            const contributionAmount = parseUnits(formData.contributionAmount, 18); // cUSD has 18 decimals
-
-            // Convert to seconds based on time unit
-            const durationInSeconds = formData.timeUnit === 'minutes'
-                ? Number(formData.cycleDuration) * 60
-                : Number(formData.cycleDuration) * 24 * 60 * 60;
-
+            const contributionAmount = parseUnits(formData.contributionAmount, 18); // Both CELO and cUSD have 18 decimals
             const cycleDuration = BigInt(durationInSeconds);
             const totalMembers = BigInt(formData.totalMembers);
 
-            // Prepare the transaction
-            const transaction = prepareCreatePool(contributionAmount, cycleDuration, totalMembers);
+            // Prepare the transaction with token address
+            const transaction = prepareCreatePool(tokenAddress, contributionAmount, cycleDuration, totalMembers);
 
             // Send transaction
             sendTransaction(transaction, {
@@ -72,6 +85,8 @@ export default function CreatePoolPage() {
         );
     }
 
+    const tokenSymbol = formData.tokenType === 'native' ? 'CELO' : 'cUSD';
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
             {/* Header */}
@@ -98,10 +113,52 @@ export default function CreatePoolPage() {
                     <h2 className="text-3xl font-bold text-white mb-6">Create New Pool</h2>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Token Type Selector */}
+                        <div>
+                            <label className="block text-white font-semibold mb-2">
+                                Payment Token
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, tokenType: 'native' })}
+                                    className={`p-4 rounded-xl border-2 transition-all ${formData.tokenType === 'native'
+                                        ? 'border-purple-500 bg-purple-500/20'
+                                        : 'border-white/20 bg-white/5 hover:border-white/40'
+                                        }`}
+                                >
+                                    <div className="text-center">
+                                        <div className="text-3xl mb-2">🪙</div>
+                                        <div className="text-white font-semibold">Native CELO</div>
+                                        <div className="text-gray-400 text-sm">Easier, no approval</div>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, tokenType: 'cusd' })}
+                                    className={`p-4 rounded-xl border-2 transition-all ${formData.tokenType === 'cusd'
+                                        ? 'border-purple-500 bg-purple-500/20'
+                                        : 'border-white/20 bg-white/5 hover:border-white/40'
+                                        }`}
+                                >
+                                    <div className="text-center">
+                                        <div className="text-3xl mb-2">💵</div>
+                                        <div className="text-white font-semibold">cUSD</div>
+                                        <div className="text-gray-400 text-sm">Stablecoin</div>
+                                    </div>
+                                </button>
+                            </div>
+                            <p className="text-gray-400 text-sm mt-2">
+                                {formData.tokenType === 'native'
+                                    ? '✨ Recommended: Send CELO directly, no token approval needed'
+                                    : '📝 Requires token approval before each contribution'}
+                            </p>
+                        </div>
+
                         {/* Contribution Amount */}
                         <div>
                             <label className="block text-white font-semibold mb-2">
-                                Contribution Amount (cUSD)
+                                Contribution Amount ({tokenSymbol})
                             </label>
                             <input
                                 type="number"
@@ -114,7 +171,7 @@ export default function CreatePoolPage() {
                                 required
                             />
                             <p className="text-gray-400 text-sm mt-1">
-                                Minimum 0.1 cUSD - How much each member contributes per cycle
+                                Minimum 0.1 {tokenSymbol} - How much each member contributes per cycle
                             </p>
                         </div>
 
@@ -170,7 +227,7 @@ export default function CreatePoolPage() {
                             <p className="text-gray-400 text-sm mt-1">
                                 {formData.timeUnit === 'minutes'
                                     ? 'Minimum 15 minutes for testing - How often payouts occur'
-                                    : 'How often payouts occur (in days)'}
+                                    : 'Minimum 1 day - How often payouts occur'}
                             </p>
                         </div>
 
@@ -178,10 +235,10 @@ export default function CreatePoolPage() {
                         <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
                             <h3 className="text-white font-semibold mb-2">Pool Summary</h3>
                             <ul className="space-y-1 text-gray-300">
-                                <li>💰 Each member pays: <span className="text-white font-semibold">{formData.contributionAmount} cUSD</span></li>
+                                <li>💰 Each member pays: <span className="text-white font-semibold">{formData.contributionAmount} {tokenSymbol}</span></li>
                                 <li>👥 Total members: <span className="text-white font-semibold">{formData.totalMembers}</span></li>
                                 <li>📅 Payout every: <span className="text-white font-semibold">{formData.cycleDuration} {formData.timeUnit}</span></li>
-                                <li>🎁 Pot size: <span className="text-white font-semibold">{(Number(formData.contributionAmount) * Number(formData.totalMembers)).toFixed(2)} cUSD</span></li>
+                                <li>🎁 Pot size: <span className="text-white font-semibold">{(Number(formData.contributionAmount) * Number(formData.totalMembers)).toFixed(2)} {tokenSymbol}</span></li>
                             </ul>
                         </div>
 

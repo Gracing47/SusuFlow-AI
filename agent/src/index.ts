@@ -72,9 +72,8 @@ class NoahAIAgent {
         const factoryContract = await this.eventListener.getFactoryContract();
 
         try {
-            // Get all pools (pagination: start=0, limit=100)
-            // Note: In production, we'd need to handle pagination properly
-            const poolAddresses = await factoryContract.getAllPools(0, 100);
+            // Get all pools from factory
+            const poolAddresses = await factoryContract.getAllPools();
 
             logger.info(`Found ${poolAddresses.length} existing pool(s)`);
 

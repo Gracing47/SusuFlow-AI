@@ -3,104 +3,102 @@ pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
 import {SusuFactory} from "../src/SusuFactory.sol";
-import {SusuPool} from "../src/SusuPool.sol";
+import {ISelfVerification} from "../src/interfaces/ISelfVerification.sol";
+
+/**
+ * @title MockSelfVerificationForDeployment
+ * @dev Mock Self Protocol verification for testnet deployment
+ * In production, replace this with actual Self Protocol integration
+ */
+contract MockSelfVerificationForDeployment is ISelfVerification {
+    mapping(address => bool) private verified;
+    
+    constructor() {}
+    
+    // Allow anyone to verify any address for the demo
+    function manualVerify(address user) external {
+        verified[user] = true;
+    }
+    
+    function isVerified(address user) external view returns (bool) {
+        return verified[user];
+    }
+}
 
 /**
  * @title DeployScript
  * @dev Deployment script for SusuFlow contracts
  * 
  * Usage:
- * 1. For Alfajores (Testnet):
- *    forge script script/Deploy.s.sol:DeployScript --rpc-url celo_alfajores --broadcast --verify
+ *   Alfajores (testnet):
+ *     forge script script/Deploy.s.sol:DeployScript --rpc-url $ALFAJORES_RPC --broadcast --verify -vvvv
+ *   
+ *   Celo Mainnet:
+ *     forge script script/Deploy.s.sol:DeployScript --rpc-url $CELO_RPC --broadcast --verify -vvvv
  * 
- * 2. For Mainnet:
- *    forge script script/Deploy.s.sol:DeployScript --rpc-url celo_mainnet --broadcast --verify
+ * Environment Variables Required:
+ *   - PRIVATE_KEY: Deployer's private key
+ *   - ALFAJORES_RPC or CELO_RPC: RPC endpoint
+ *   - CELOSCAN_API_KEY: For contract verification
  */
 contract DeployScript is Script {
-    // Celo cUSD addresses
-    address constant CUSD_MAINNET = 0x765DE816845861e75A25fCA122bb6898B8B1282a;
-    address constant CUSD_ALFAJORES = 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1;
     
-    // Self Protocol Hub V2 addresses
-    address constant SELF_HUB_MAINNET = 0xe57F4773bd9c9d8b6Cd70431117d353298B9f5BF;
-    address constant SELF_HUB_ALFAJORES = 0xe57F4773bd9c9d8b6Cd70431117d353298B9f5BF; // Replace with actual if different
-    
-    // Default verification config ID (placeholder)
-    bytes32 constant DEFAULT_CONFIG_ID = bytes32(uint256(1));
+    // Deployed contract instances
+    MockSelfVerificationForDeployment public selfVerification;
+    SusuFactory public factory;
     
     function run() external {
-        // Get deployer private key from environment
+        // Get deployer from private key
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
         
-        console.log("Deploying contracts with account:", deployer);
-        console.log("Account balance:", deployer.balance);
+        console.log("====================================");
+        console.log("SusuFlow Deployment Script");
+        console.log("====================================");
+        console.log("Deployer:", deployer);
+        console.log("Chain ID:", block.chainid);
+        console.log("");
         
-        // Determine which network we're on
-        uint256 chainId = block.chainid;
-        address cUSDAddress;
-        address hubV2Address;
-        
-        if (chainId == 42220) {
-            // Celo Mainnet
-            console.log("Deploying to Celo Mainnet");
-            cUSDAddress = CUSD_MAINNET;
-            hubV2Address = SELF_HUB_MAINNET;
-        } else if (chainId == 44787) {
-            // Alfajores Testnet
-            console.log("Deploying to Celo Alfajores Testnet");
-            cUSDAddress = CUSD_ALFAJORES;
-            hubV2Address = SELF_HUB_ALFAJORES;
-        } else {
-            // Unknown network - use default
-            console.log("Unknown network, using Alfajores addresses");
-            cUSDAddress = CUSD_ALFAJORES;
-            hubV2Address = SELF_HUB_ALFAJORES;
-        }
-        
-        console.log("cUSD Address:", cUSDAddress);
-        console.log("Hub V2 Address:", hubV2Address);
-        
-        // Start broadcast
         vm.startBroadcast(deployerPrivateKey);
         
-        // Deploy SusuFactory
-        SusuFactory factory = new SusuFactory(
-            cUSDAddress,
-            hubV2Address,
-            DEFAULT_CONFIG_ID
-        );
+        // 1. Deploy Mock Self Protocol Verification
+        console.log("Deploying Mock Self Verification...");
+        selfVerification = new MockSelfVerificationForDeployment();
+        console.log("Mock Self Verification deployed at:", address(selfVerification));
+        console.log("");
         
+        // 2. Deploy Factory
+        console.log("Deploying SusuFactory...");
+        factory = new SusuFactory(address(selfVerification));
         console.log("SusuFactory deployed at:", address(factory));
-        console.log("-------------------------------------");
-        console.log("SAVE THESE ADDRESSES:");
-        console.log("Factory:", address(factory));
-        console.log("cUSD:", cUSDAddress);
-        console.log("Hub V2:", hubV2Address);
-        console.log("-------------------------------------");
+        console.log("");
         
-        // Verify deployer on the factory (for testing)
-        factory.manualVerify(deployer);
-        console.log("Deployer verified:", deployer);
-        
-        // Create a test pool (optional, comment out for production)
-        /*
-        address testPool = factory.createPool(
-            10 ether, // 10 cUSD contribution
-            7 days,   // 1 week cycles
-            5         // 5 members max
-        );
-        console.log("Test pool created at:", testPool);
-        */
+        // 3. Verify deployer for testing
+        console.log("Verifying deployer address for testing...");
+        selfVerification.manualVerify(deployer);
+        console.log("");
         
         vm.stopBroadcast();
         
-        console.log("Deployment complete!");
-        console.log("-------------------------------------");
-        console.log("Next steps:");
-        console.log("1. Verify contracts on CeloScan (if not auto-verified)");
-        console.log("2. Update frontend .env with Factory address");
-        console.log("3. Update agent config with Factory address");
-        console.log("4. Test pool creation on frontend");
+        // Print deployment summary
+        console.log("====================================");
+        console.log("Deployment Summary");
+        console.log("====================================");
+        console.log("Self Verification:", address(selfVerification));
+        console.log("SusuFactory:", address(factory));
+        console.log("");
+        console.log("Next Steps:");
+        console.log("1. Save these addresses to your .env file:");
+        console.log("   SELF_VERIFICATION_ADDRESS=%s", address(selfVerification));
+        console.log("   FACTORY_ADDRESS=%s", address(factory));
+        console.log("");
+        console.log("2. Update frontend configuration with factory address");
+        console.log("");
+        console.log("3. To create a pool:");
+        console.log("   - For native CELO: call createPool(address(0), amount, duration, maxMembers)");
+        console.log("   - For cUSD: call createPool(0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1, amount, duration, maxMembers)");
+        console.log("");
+        console.log("4. Verify deployer is authorized (already done): true");
+        console.log("====================================");
     }
 }

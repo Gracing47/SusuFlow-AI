@@ -15,7 +15,7 @@ export default function PoolsPage() {
     useEffect(() => {
         async function fetchPools() {
             const poolAddresses = await getAllPools();
-            setPools(poolAddresses);
+            setPools([...poolAddresses]); // Convert readonly array to mutable array
             setLoading(false);
         }
         fetchPools();
