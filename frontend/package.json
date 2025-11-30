@@ -25,6 +25,7 @@
     "baseline-browser-mapping": "^2.8.32",
     "eslint": "^9",
     "eslint-config-next": "16.0.5",
+    "ignore-loader": "^0.1.2",
     "null-loader": "^4.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"

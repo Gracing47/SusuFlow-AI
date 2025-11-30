@@ -5,3 +5,6 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[context.production.environment]
+  NEXT_PRIVATE_TURBOPACK = "false"
