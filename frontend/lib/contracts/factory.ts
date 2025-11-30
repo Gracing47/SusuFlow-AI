@@ -7,7 +7,7 @@ export const factoryContract = getContract({
     client,
     chain: celo,
     address: FACTORY_ADDRESS,
-    abi: FactoryABI.abi,
+    abi: FactoryABI.abi as any,
 });
 
 // Read all pools
