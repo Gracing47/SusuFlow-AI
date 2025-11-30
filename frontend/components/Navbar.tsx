@@ -6,6 +6,7 @@ import { ConnectButton, useActiveAccount } from 'thirdweb/react';
 import { client } from '@/lib/client';
 import { celo } from 'thirdweb/chains';
 import { isUserVerified } from '@/lib/contracts/verification';
+import { TalentScore } from './TalentScore';
 
 export function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -84,6 +85,9 @@ export function Navbar() {
                                 )}
                             </Link>
                         )}
+
+                        {/* Talent Protocol Score */}
+                        {account && <TalentScore address={account.address} />}
 
                         <Link
                             href="/pools"
