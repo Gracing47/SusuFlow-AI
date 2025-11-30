@@ -52,20 +52,14 @@ export function Navbar() {
                         </Link>
                     </div>
 
-                    {/* Burger Menu Button */}
+                    {/* Mobile Connect Button */}
                     <div className="md:hidden">
-                        <button
-                            onClick={() => setIsOpen(!isOpen)}
-                            className="text-gray-300 hover:text-white focus:outline-none p-2"
-                        >
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                {isOpen ? (
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                ) : (
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                                )}
-                            </svg>
-                        </button>
+                        <ConnectButton
+                            client={client}
+                            chain={celo}
+                            theme={"dark"}
+                            connectModal={{ size: "compact" }}
+                        />
                     </div>
 
                     {/* Desktop Menu (Hidden on Mobile) */}
@@ -112,57 +106,6 @@ export function Navbar() {
                     </div>
                 </div>
             </div>
-
-            {/* Mobile Menu Overlay */}
-            {isOpen && (
-                <div className="md:hidden absolute top-16 left-0 right-0 bg-black/95 backdrop-blur-xl border-b border-white/10 shadow-2xl animate-in slide-in-from-top-5 duration-200">
-                    <div className="px-4 pt-2 pb-6 space-y-4">
-                        <Link
-                            href="/"
-                            onClick={() => setIsOpen(false)}
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all"
-                        >
-                            Home
-                        </Link>
-
-                        {/* Verification Status (Mobile) */}
-                        {account && (
-                            <Link
-                                href="/verify"
-                                onClick={() => setIsOpen(false)}
-                                className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${isCheckingVerification
-                                    ? 'bg-gray-500/20 text-gray-400'
-                                    : isVerified
-                                        ? 'bg-green-500/20 text-green-400'
-                                        : 'bg-yellow-500/20 text-yellow-400 animate-pulse'
-                                    }`}
-                            >
-                                {isCheckingVerification ? '⏳ Checking Verification...' : isVerified ? '✅ Verified' : '⚠️ Verify Your Identity'}
-                            </Link>
-                        )}
-
-                        <Link
-                            href="/pools/create"
-                            onClick={() => setIsOpen(false)}
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all"
-                        >
-                            Create Pool
-                        </Link>
-
-                        <div className="pt-4 border-t border-white/10">
-                            <div className="flex items-center justify-between px-3">
-                                <span className="text-sm text-gray-400">Wallet</span>
-                                <ConnectButton
-                                    client={client}
-                                    chain={celo}
-                                    theme={"dark"}
-                                    connectModal={{ size: "compact" }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </nav>
     );
 }
