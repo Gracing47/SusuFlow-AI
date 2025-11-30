@@ -54,6 +54,9 @@ logs/
 .temp/
 tmp/
 
+# Documentation (internal dev notes)
+Doc/
+
 # Hardhat (if used)
 artifacts/
 typechain/
